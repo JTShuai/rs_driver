@@ -1,3 +1,8 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
 # **rs_driver v1.5.8 源代码解析**
 
 ## 1 基本概念

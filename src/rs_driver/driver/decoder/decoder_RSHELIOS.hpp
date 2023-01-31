@@ -267,8 +267,10 @@ inline bool DecoderRSHELIOS<T_PointCloud>::internDecodeMsopPkt(const uint8_t* pa
       int32_t angle_horiz = block_az + 
         (int32_t)((float)block_az_diff * this->mech_const_param_.CHAN_AZIS[chan]);
 
+      // 修正 水平角 和 垂直角
       int32_t angle_vert = this->chan_angles_.vertAdjust(chan);
       int32_t angle_horiz_final = this->chan_angles_.horizAdjust(chan, angle_horiz);
+      // channel.distance 乘以一个解析度得到真实距离。
       float distance = ntohs(channel.distance) * this->const_param_.DISTANCE_RES;
 
       if (this->distance_section_.in(distance) && this->scan_section_.in(angle_horiz_final))

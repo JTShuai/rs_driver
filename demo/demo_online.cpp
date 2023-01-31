@@ -32,6 +32,7 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <rs_driver/api/lidar_driver.hpp>
 
+// 选择是否使用 PCL
 #ifdef ENABLE_PCL_POINTCLOUD
 #include <rs_driver/msg/pcl_point_cloud_msg.hpp>
 #else
@@ -40,11 +41,20 @@ THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 //#define ORDERLY_EXIT
 
+// typedef type var
 typedef PointXYZI PointT;
 typedef PointCloudT<PointT> PointCloudMsg;
 
 using namespace robosense::lidar;
 
+/*
+ * 定义和注册点云回调函数:
+ * rs_driver 需要调用者通过回调函数，提供空闲的点云实例: free_cloud_queue
+ * rs_driver 通过回调函数，将填充好的点云返回给调用者: stuffed_cloud_queue
+ *
+ * 注意对应的两个回调函数都运行在 rs_driver 的 MSOP/DIFOP Packet的处理线程中，
+ * 所以它们不可以做太耗时的任务，否则会导致 MSOP/DIFOP Packet 不能及时处理。
+ */
 SyncQueue<std::shared_ptr<PointCloudMsg>> free_cloud_queue;
 SyncQueue<std::shared_ptr<PointCloudMsg>> stuffed_cloud_queue;
 
@@ -91,6 +101,9 @@ void exceptionCallback(const Error& code)
 }
 
 bool to_exit_process = false;
+
+
+// 使用者在自己的线程中，处理点云
 void processCloud(void)
 {
   while (!to_exit_process)
@@ -123,25 +136,36 @@ int main(int argc, char* argv[])
   RS_TITLE << "            RS_Driver Core Version: v" << getDriverVersion() << RS_REND;
   RS_TITLE << "------------------------------------------------------" << RS_REND;
 
+  //配置 LidarDriver 参数
   RSDriverParam param;                  ///< Create a parameter object
   param.input_type = InputType::ONLINE_LIDAR;
   param.input_param.msop_port = 6699;   ///< Set the lidar msop port number, the default is 6699
   param.input_param.difop_port = 7788;  ///< Set the lidar difop port number, the default is 7788
-  param.lidar_type = LidarType::RSM1;   ///< Set the lidar type. Make sure this type is correct
+  // param.input_param.host_address = "192.168.20.222";  ///< Set the destination IP address
+  param.lidar_type = LidarType::RSHELIOS;   ///< Set the lidar type. Make sure this type is correct
   param.print();
 
+  // 定义 LidarDriver 对象
   LidarDriver<PointCloudMsg> driver;               ///< Declare the driver object
+
+  // 注册两个点云回调函数
   driver.regPointCloudCallback(driverGetPointCloudFromCallerCallback, driverReturnPointCloudToCallerCallback); ///< Register the point cloud callback functions
+  // 注册异常回调函数
   driver.regExceptionCallback(exceptionCallback);  ///< Register the exception callback function
+
+  // 初始化LidarDriver对象
   if (!driver.init(param))                         ///< Call the init function
   {
     RS_ERROR << "Driver Initialize Error..." << RS_REND;
     return -1;
   }
 
+  // 处理点云的线程
   std::thread cloud_handle_thread = std::thread(processCloud);
 
+  // 启动 LidarDriver 对象
   driver.start();  ///< The driver thread will start
+
   RS_DEBUG << "RoboSense Lidar-Driver Linux online demo start......" << RS_REND;
 
 #ifdef ORDERLY_EXIT

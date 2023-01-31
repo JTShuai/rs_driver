@@ -49,11 +49,16 @@ namespace robosense
 {
 namespace lidar
 {
+// 声明 Input 类
 class Input
 {
 public:
+  // 声明构造函数
+  // driver_param.hpp 中定义的 RSInputParam struct
   Input(const RSInputParam& input_param);
 
+  // 声明成员函数
+  // Input的使用者调用Input::regCallback()
   inline void regCallback(
       const std::function<void(const Error&)>& cb_excep,
       const std::function<std::shared_ptr<Buffer>(size_t)>& cb_get_pkt,
@@ -67,6 +72,7 @@ public:
   }
 
 protected:
+  // 声明成员变量和成员函数
   inline void pushPacket(std::shared_ptr<Buffer> pkt, bool stuffed = true);
 
   RSInputParam input_param_;
@@ -77,14 +83,18 @@ protected:
   bool to_exit_recv_;
   bool init_flag_;
   bool start_flag_;
-};
+};  ///< 类的声明结束
 
+
+// 定义构造函数
+// 构造函数 : A(初始值),B(初始值),C(初始值)……
 inline Input::Input(const RSInputParam& input_param)
   : input_param_(input_param), to_exit_recv_(false), 
   init_flag_(false), start_flag_(false)
 {
 }
 
+// 定义成员函数
 inline void Input::regCallback(
     const std::function<void(const Error&)>& cb_excep,
     const std::function<std::shared_ptr<Buffer>(size_t)>& cb_get_pkt, 
